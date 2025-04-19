@@ -1,4 +1,3 @@
-import os
 import io
 import base64
 import pandas as pd
@@ -6,125 +5,83 @@ import joblib
 from pathlib import Path
 
 import dash
-from dash import dcc, html, Input, Output, State
+from dash import dcc, html, Input, Output
 import dash_bootstrap_components as dbc
 
-# Paths and model definitions
-ARTIFACTS_DIR = Path(__file__).parent / 'artifacts'
-MODEL_FILES = {
-    'cooler_pct':   ARTIFACTS_DIR / 'rf_cooler_pct.pkl',
-    'valve_pct':    ARTIFACTS_DIR / 'rf_valve_pct.pkl',
-    'pump_leak':    ARTIFACTS_DIR / 'rf_pump_leak.pkl',
-    'acc_pressure': ARTIFACTS_DIR / 'rf_acc_pressure.pkl'
+# Directory where your .pkl models live
+ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
+MODELS = {
+    "cooler_pct":   ARTIFACTS_DIR / "rf_cooler_pct.pkl",
+    "valve_pct":    ARTIFACTS_DIR / "rf_valve_pct.pkl",
+    "pump_leak":    ARTIFACTS_DIR / "rf_pump_leak.pkl",
+    "acc_pressure": ARTIFACTS_DIR / "rf_acc_pressure.pkl",
 }
 
-# Path to a sample features CSV to extract expected column names
-TEMPLATE_CSV = Path(__file__).parent / 'data' / 'processed' / 'features.csv'
-try:
-    expected_cols = pd.read_csv(TEMPLATE_CSV, nrows=0).columns.tolist()
-except Exception:
-    expected_cols = []
-
-# Initialize Dash app
+# Initialize Dash app with Bootstrap theme
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 server = app.server
 
-# Build list of expected columns UI
-if expected_cols:
-    expected_list = html.Ul([html.Li(col) for col in expected_cols], style={'columns': 2})
-else:
-    expected_list = html.P("No template CSV found to list expected columns.")
-
-# Layout
+# Layout: upload + button + results
 app.layout = dbc.Container([
-    html.H1("Hydraulic System Condition Monitor"),
-    html.H5("Upload a CSV with the feature columns below:"),
-    expected_list,
-
+    html.H2("Hydraulic System Predictor"),
+    html.P("Upload a CSV of engineered features (one row per cycle):"),
     dcc.Upload(
-        id='upload-data',
-        children=html.Div(['Drag and Drop or ', html.A('Select a CSV File')]),
-        style={
-            'width': '100%', 'height': '60px', 'lineHeight': '60px',
-            'borderWidth': '1px', 'borderStyle': 'dashed', 'borderRadius': '5px',
-            'textAlign': 'center', 'marginBottom': '20px'
-        },
+        id="upload-data",
+        children=html.Div(["Drag & drop or click to upload"]),
+        style={"width":"100%","height":"60px","lineHeight":"60px",
+               "borderWidth":"1px","borderStyle":"dashed",
+               "borderRadius":"5px","textAlign":"center"},
         multiple=False
     ),
-
-    html.Div([
-        html.Label("Cycle index (optional):"),
-        dcc.Input(id='cycle-index', type='number', min=0, step=1,
-                  placeholder='Leave blank to predict all rows')
-    ], style={'width': '300px', 'marginBottom': '20px'}),
-
-    dbc.Button("Run Predictions", id='predict-btn', color='primary', disabled=True),
-
-    dcc.Store(id='stored-data'),
-
-    dbc.Modal([
-        dbc.ModalHeader(html.H4("Prediction Results")),
-        dbc.ModalBody(id='modal-body'),
-        dbc.ModalFooter(dbc.Button("Close", id='close-modal'))
-    ], id='results-modal', size='lg', is_open=False)
+    html.Br(),
+    dbc.Button("Run Predictions", id="run-btn", color="primary", disabled=True),
+    html.Div(id="results-div", className="mt-4")
 ], fluid=True)
 
-# Parse upload and enable button
+# Enable the button when a file is uploaded
+def enable_button(contents):
+    return contents is None
+app.callback(Output("run-btn","disabled"), Input("upload-data","contents"))(enable_button)
+
+# Handle predictions
 @app.callback(
-    Output('stored-data', 'data'),
-    Output('predict-btn', 'disabled'),
-    Input('upload-data', 'contents'),
-    State('upload-data', 'filename')
+    Output("results-div","children"),
+    Input("run-btn","n_clicks"),
+    Input("upload-data","contents"),
+    prevent_initial_call=True
 )
-def parse_upload(contents, filename):
-    if contents is None:
-        return dash.no_update, True
-    _, content_string = contents.split(',')
-    decoded = base64.b64decode(content_string)
-    df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
-    return df.to_json(date_format='iso', orient='split'), False
-
-# Run predictions and show modal
-@app.callback(
-    Output('results-modal', 'is_open'),
-    Output('modal-body', 'children'),
-    Input('predict-btn', 'n_clicks'),
-    Input('close-modal', 'n_clicks'),
-    State('cycle-index', 'value'),
-    State('stored-data', 'data'),
-    State('results-modal', 'is_open')
-)
-def show_results(run_click, close_click, idx, data_json, is_open):
-    ctx = dash.callback_context
-    if not ctx.triggered:
-        return False, dash.no_update
-    trigger = ctx.triggered[0]['prop_id'].split('.')[0]
-    if trigger == 'close-modal':
-        return False, dash.no_update
-
-    # Load DataFrame
-    df = pd.read_json(data_json, orient='split')
-    # Select one row if index provided
-    if idx is not None and 0 <= idx < len(df):
-        df = df.iloc[[int(idx)]]
-
-    bars = []
-    for target, model_path in MODEL_FILES.items():
-        model = joblib.load(model_path)
-        preds = model.predict(df)
-        counts = pd.Series(preds).value_counts(normalize=True)
-        segments = [
-            {'label': str(int(cls)), 'value': int(frac * 100), 'color': 'info'}
-            for cls, frac in counts.items()
-        ]
-        bars.append(
-            dbc.Row([
-                dbc.Col(html.Strong(target), width='auto'),
-                dbc.Col(dbc.Progress(segments, multi=True, style={'height': '40px'}), width=10)
-            ], align='center', className='mb-3')
+def run_predictions(n_clicks, contents):
+    if not contents:
+        return dash.no_update
+    # Parse CSV
+    try:
+        prefix, b64 = contents.split(",")
+        decoded = base64.b64decode(b64)
+        df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+    except Exception as e:
+        return html.Div(f"Failed to parse CSV: {e}", style={'color':'red'})
+    # Check model files
+    missing = [name for name,path in MODELS.items() if not path.exists()]
+    if missing:
+        return html.Div(
+            f"Missing model files: {', '.join(missing)}. Please train and save them in artifacts/.",
+            style={'color':'red'}
         )
-
-    return True, bars
+    # Predict and build progress bars
+    output_rows = []
+    for name, path in MODELS.items():
+        try:
+            model = joblib.load(path)
+            preds = model.predict(df)
+            freqs = pd.Series(preds).value_counts(normalize=True).sort_index()
+            # Create stacked bars
+            bars = [dbc.Progress(value=int(freq*100), color='info', label=str(int(cls)), bar=True)
+                    for cls,freq in freqs.items()]
+            stack = dbc.Progress(children=bars, style={'height':'30px'})
+            output_rows.append(html.Div([html.B(name), stack], className='mb-3'))
+        except Exception as e:
+            output_rows.append(html.Div(f"Error with {name}: {e}", style={'color':'red'}))
+    return output_rows
 
 if __name__ == '__main__':
     app.run(debug=True)
