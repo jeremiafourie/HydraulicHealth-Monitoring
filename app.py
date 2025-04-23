@@ -190,4 +190,4 @@ def display_errors(contents, n_clicks, feats_json, idx):
 register_modal_callbacks(app)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=False)
