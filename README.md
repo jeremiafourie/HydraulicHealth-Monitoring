@@ -26,3 +26,19 @@ Hydraulic component failures cause costly downtime.
 1. Combining pressure, flow, temperature, and power sensors improves accuracy.
 2. Sliding‑window statistics (mean, std, slope over recent cycles) outperform single‑cycle inputs.
 3. An LSTM sequence model reduces error versus tabular methods.
+
+4. **Inference**
+
+## 📊 Key Findings (from EDA)
+
+## 🔧 Requirements
+
+## 📝 Notes
+
+- **Division of work:**
+  - _Jeremia Fourie:_ Baseline modeling and hyperparameter tuning and input form for dash app
+  - _Juan Oosthuizen:_ Exploratory Data Analysis, visualizations and feature engineering
+  - _Busisiwe Radebe:_ Data loading, cleaning, and report writing
+  - _Phumlani Ntuli:_ dash app prediction modal callbacks and deployment
+
+Feel free to open issues or submit pull requests for improvements!
