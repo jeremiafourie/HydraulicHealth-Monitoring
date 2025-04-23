@@ -49,6 +49,16 @@ Hydraulic component failures cause costly downtime.
 
   - EPS1 FFT peak shifts from ~1.2 Hz (healthy) to ~1.5 Hz (worn valves)
 
+## 🔧 Requirements
+
+Install all with:
+
+```bash
+pip install -r requirements.txt
+```
+
+## 📝 Notes
+
 - **Division of work:**
   - _Jeremia Fourie:_ Baseline modeling and hyperparameter tuning and input form for dash app
   - _Juan Oosthuizen:_ Exploratory Data Analysis, visualizations and feature engineering
