@@ -4,6 +4,7 @@ import pandas as pd
 import joblib
 from pathlib import Path
 
+import dash
 from dash import Input, Output, State, html
 import dash_bootstrap_components as dbc
 from dash import dash_table
