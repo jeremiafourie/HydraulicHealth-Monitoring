@@ -17,7 +17,7 @@ CLASS_DIST = {
 }
 
 # Feature engineering functions
-from src.feature_engineering import build_summary_features, build_fft_features
+from src.preprocess_data import build_summary_features, build_fft_features
 
 # Model file paths
 ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
