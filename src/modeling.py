@@ -159,8 +159,10 @@ def publish_models(models: Dict[str, Any], output_dir: str) -> None:
 
 if __name__ == '__main__':
     from sklearn.ensemble import RandomForestClassifier
+
     # Example: train and publish RF models for each target
-    FEATURES_CSV = os.path.join('..','data','processed','features.csv')
+    base = os.path.dirname(__file__)
+    FEATURES_CSV = os.path.join(base, '..','data','processed','features.csv')
     X, targets, _ = load_features(FEATURES_CSV)
     models_to_publish = {}
     for tgt, y in targets.items():

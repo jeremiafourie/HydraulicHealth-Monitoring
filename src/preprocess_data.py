@@ -114,7 +114,7 @@ if __name__ == '__main__':
     cycles = load_cycles(cycles_path)
 
     print("Building features...")
-    feats = assemble_features(cycles, include_summary=True, include_fft=False)
+    feats = assemble_features(cycles, include_summary=True, include_fft=True)
     print(f"Features shape: {feats.shape}")
 
     print("Saving features...")
