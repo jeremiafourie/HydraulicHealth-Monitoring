@@ -23,16 +23,31 @@ Hydraulic component failures cause costly downtime.
 
 ## Hypotheses
 
-1. Combining pressure, flow, temperature, and power sensors improves accuracy.
-2. Sliding‑window statistics (mean, std, slope over recent cycles) outperform single‑cycle inputs.
+1. Tree-based classifiers (Random Forest, XGBoost) using cycle-level summary statistics will provide a reliable baseline for classifying pump leakage and accumulator pressure.
 
-3. **Inference**
+2. Addressing class imbalance (e.g., via SMOTE or class weights) will improve macro-F1 scores, especially on under-represented leakage/severe classes.
 
-## 📊 Key Findings (from EDA)
+3. Advanced models (LightGBM, MLP) trained on engineered features (statistics + FFT) will outperform baseline classifiers in both accuracy and macro-F1 across all targets.
 
-## 🔧 Requirements
+## Key EDA Findings
 
-## 📝 Notes
+- **Imbalanced Targets**
+
+  - Pump leakage: 55% no leak, 22% weak, 22% severe
+  - Accumulator pressure skewed toward 90 bar cycles
+
+- **Summary Statistics Signal**
+
+  - PS1 mean vs. cooler_pct: r ≈ 0.45
+  - FS2 std vs. acc_pressure: r ≈ 0.50
+
+- **Distinct Time-Series Patterns**
+
+  - Severe-leak cycles show an early PS1 spike (~5 s) not seen in no-leak cycles
+
+- **Frequency-Domain Shifts**
+
+  - EPS1 FFT peak shifts from ~1.2 Hz (healthy) to ~1.5 Hz (worn valves)
 
 - **Division of work:**
   - _Jeremia Fourie:_ Baseline modeling and hyperparameter tuning and input form for dash app
