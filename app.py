@@ -112,11 +112,18 @@ app.layout = dbc.Container([
     # Results Modal
     dbc.Modal([
         dbc.ModalHeader(html.H4("Prediction Result")),
-        dbc.ModalBody(html.Div(id='modal-body')),
+        dbc.ModalBody(
+            dcc.Loading(
+                id='loading-prediction',
+                type='circle',
+                children=html.Div(id='modal-body')
+            )
+        ),
         dbc.ModalFooter(
             dbc.Button('Close', id='close-modal', className='ms-auto')
         ),
     ], id='results-modal', size='lg', is_open=False)
+
 ], fluid=True)
 
 # Enable predict button only when features loaded and index provided
@@ -157,7 +164,7 @@ def parse_and_engineer(contents):
         )
 
     feats_json = feats.to_json(date_format='iso', orient='split')
-    # Preview
+    # Preview table
     table = dash_table.DataTable(
         data=feats.head(10).to_dict('records'),
         columns=[{'name': c, 'id': c} for c in feats.columns],
