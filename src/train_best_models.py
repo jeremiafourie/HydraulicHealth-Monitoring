@@ -18,11 +18,17 @@ import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import RandomizedSearchCV, StratifiedKFold
 
+import sys
+from pathlib import Path
+
+project_root = Path.cwd().parent 
+sys.path.insert(0, str(project_root))
+
 from src.modeling import load_features
 
 def main():
     # Paths
-    project_root = Path(__file__).resolve().parent
+    project_root = Path(__file__).resolve().parent.parent
     feature_csv   = project_root / "data" / "processed" / "features.csv"
     artifacts_dir = project_root / "artifacts"
     artifacts_dir.mkdir(exist_ok=True)

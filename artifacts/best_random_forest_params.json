@@ -1,0 +1,42 @@
+{
+  "cooler_pct": {
+    "params": {
+      "n_estimators": 100,
+      "min_samples_split": 10,
+      "min_samples_leaf": 1,
+      "max_depth": 10,
+      "bootstrap": true
+    },
+    "cv_f1_macro": 0.9981889009079066
+  },
+  "valve_pct": {
+    "params": {
+      "n_estimators": 100,
+      "min_samples_split": 2,
+      "min_samples_leaf": 1,
+      "max_depth": 20,
+      "bootstrap": true
+    },
+    "cv_f1_macro": 0.9910517746746844
+  },
+  "pump_leak": {
+    "params": {
+      "n_estimators": 100,
+      "min_samples_split": 5,
+      "min_samples_leaf": 1,
+      "max_depth": 20,
+      "bootstrap": true
+    },
+    "cv_f1_macro": 0.9949875523439309
+  },
+  "acc_pressure": {
+    "params": {
+      "n_estimators": 200,
+      "min_samples_split": 5,
+      "min_samples_leaf": 1,
+      "max_depth": 20,
+      "bootstrap": false
+    },
+    "cv_f1_macro": 0.9889917959131903
+  }
+}
