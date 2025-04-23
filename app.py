@@ -7,7 +7,7 @@ import dash
 from dash import dcc, html, Input, Output, State, dash_table
 import dash_bootstrap_components as dbc
 
-from src.preprocess_data import build_summary_features, build_fft_features
+from old_preprocess_data import build_summary_features, build_fft_features
 from src.modal_callbacks import register_modal_callbacks
 
 # Initialize Dash app
