@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 
 import dash
-from dash import dcc, html, Input, Output, State, dash_table
+from dash import dcc, html, Input, Output, State, dash_table, callback_context
 import dash_bootstrap_components as dbc
 
 from src.preprocess_data import build_summary_features, build_fft_features
@@ -68,7 +68,6 @@ controls_card = dbc.Card(
                     className='form-control'
                 ),
             ], className='mb-3'),
-            # Full-width button using Bootstrap utility class
             dbc.Button(
                 'Predict Cycle',
                 id='predict-btn',
@@ -104,6 +103,9 @@ app.layout = dbc.Container([
         dbc.Col([preview_card], width=8)
     ], align='start'),
 
+    # Error message display
+    html.Div(id='error-message', className='mb-3'),
+
     # Hidden store for features
     dcc.Store(id='stored-features'),
 
@@ -117,7 +119,6 @@ app.layout = dbc.Container([
     ], id='results-modal', size='lg', is_open=False)
 ], fluid=True)
 
-# Callbacks
 # Enable predict button only when features loaded and index provided
 @app.callback(
     Output('predict-btn', 'disabled'),
@@ -126,7 +127,7 @@ app.layout = dbc.Container([
 def enable_predict(feats_json, idx):
     return feats_json is None or idx is None
 
-# Parse upload and build features
+# Parse upload and build features, catch CSV & feature errors
 @app.callback(
     [Output('stored-features','data'), Output('feature-table','children')],
     [Input('upload-data','contents')]
@@ -134,31 +135,56 @@ def enable_predict(feats_json, idx):
 def parse_and_engineer(contents):
     if not contents:
         return dash.no_update, dash.no_update
-    # Decode and read CSV
-    _, b64 = contents.split(',')
-    df = pd.read_csv(io.StringIO(base64.b64decode(b64).decode('utf-8')))
-
-    # Engineer features
-    sumf = build_summary_features(df)
-    fftf = build_fft_features(df, n_bins=5)
-    feats = pd.concat([sumf, fftf], axis=1)
-    feats.insert(0, 'cycle_index', feats.index)
+    # Try reading CSV
+    try:
+        _, b64 = contents.split(',')
+        df = pd.read_csv(io.StringIO(base64.b64decode(b64).decode('utf-8')))
+    except Exception:
+        return None, html.Div(
+            dbc.Alert("Error: Uploaded file is not a valid CSV.", color='danger'),
+            className='p-2'
+        )
+    # Try building features
+    try:
+        sumf = build_summary_features(df)
+        fftf = build_fft_features(df, n_bins=5)
+        feats = pd.concat([sumf, fftf], axis=1)
+        feats.insert(0, 'cycle_index', feats.index)
+    except Exception as e:
+        return None, html.Div(
+            dbc.Alert(f"Error processing features: {str(e)}", color='danger'),
+            className='p-2'
+        )
 
     feats_json = feats.to_json(date_format='iso', orient='split')
-
     # Preview
     table = dash_table.DataTable(
-        data=feats.head(5).to_dict('records'),
+        data=feats.head(10).to_dict('records'),
         columns=[{'name': c, 'id': c} for c in feats.columns],
-        page_size=5,
+        page_size=8,
         style_table={'overflowX': 'auto'},
         style_header={'backgroundColor': '#e9ecef', 'fontWeight': 'bold'},
         style_data_conditional=[
             {'if': {'row_index': 'odd'}, 'backgroundColor': '#f8f9fa'}
         ]
     )
-    preview = html.Div([table], className='p-2')
-    return feats_json, preview
+    return feats_json, table
+
+# Show errors on invalid cycle selection or CSV upload
+@app.callback(
+    Output('error-message', 'children'),
+    [Input('upload-data','contents'), Input('predict-btn','n_clicks')],
+    [State('stored-features','data'), State('cycle-index','value')]
+)
+def display_errors(contents, n_clicks, feats_json, idx):
+    triggered = callback_context.triggered[0]['prop_id'].split('.')[0]
+    if triggered == 'predict-btn':
+        if feats_json is None:
+            return dbc.Alert("Please upload a valid file and check feature errors.", color='warning')
+        feats = pd.read_json(feats_json, orient='split')
+        if idx is None or idx not in feats['cycle_index'].values:
+            return dbc.Alert(f"Cycle index {idx} does not exist.", color='warning')
+    return ''
 
 # Register external modal callbacks
 register_modal_callbacks(app)
